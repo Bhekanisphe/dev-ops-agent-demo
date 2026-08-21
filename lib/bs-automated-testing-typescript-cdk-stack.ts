@@ -33,7 +33,7 @@ export class BsAutomatedTestingTypescriptCdkStack extends cdk.Stack {
     // example resource
 
     const resultsBucket = new s3.Bucket(this, 'CdkBucket', {
-      bucketName: "automated-test-cases-results",
+      bucketName: "rsa-automated-test-cases-results",
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       encryption: s3.BucketEncryption.S3_MANAGED,
       versioned: true
@@ -41,7 +41,7 @@ export class BsAutomatedTestingTypescriptCdkStack extends cdk.Stack {
     // DynamoDB Tables
 
     const automatedTestingDynamodbTable = new dynamodb.Table(this, 'AutomatedTestingTable', {
-      tableName: "automated-testing-cdk",
+      tableName: "rsa-automated-testing-cdk",
       partitionKey: {
         name: automatedTestingPartitionKey,
         type: dynamodb.AttributeType.STRING
@@ -55,7 +55,7 @@ export class BsAutomatedTestingTypescriptCdkStack extends cdk.Stack {
     });
 
     const resultsDynamodbTable = new dynamodb.Table(this, 'ResultsTable', {
-      tableName: "test-results-table-cdk",
+      tableName: "rsa-test-results-table-cdk",
       partitionKey: {
         name: resultsTablePartitionKey,
         type: dynamodb.AttributeType.STRING
@@ -112,7 +112,7 @@ export class BsAutomatedTestingTypescriptCdkStack extends cdk.Stack {
 
     // Lambda Functions
     const universal_test_cases = new NodejsFunction(this, 'universal_test_cases', {
-      functionName: "universal-test-cases-cdk",
+      functionName: "rsa-universal-test-cases-cdk",
       runtime: lambda.Runtime.NODEJS_24_X,
       handler: 'handler',
       timeout: Duration.seconds(300),
@@ -137,7 +137,7 @@ export class BsAutomatedTestingTypescriptCdkStack extends cdk.Stack {
     }));
 
     const results_lambdaFunction = new NodejsFunction(this, 'results-lambda', {
-      functionName: "test-results-cdk",
+      functionName: "rsa-test-results-cdk",
       runtime: lambda.Runtime.NODEJS_24_X,
       handler: 'handler',
       timeout: Duration.seconds(300),
