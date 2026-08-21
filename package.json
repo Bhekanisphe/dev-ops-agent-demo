@@ -1,0 +1,31 @@
+{
+  "name": "bs-automated-testing-typescript-cdk",
+  "version": "0.1.0",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "test": "jest",
+    "cdk": "cdk"
+  },
+  "devDependencies": {
+    "@swc/core": "^1.15.0",
+    "@swc/jest": "^0.2.39",
+    "@types/aws-lambda": "^8.10.162",
+    "@types/exceljs": "^0.5.3",
+    "@types/jest": "^30",
+    "@types/node": "^24.10.1",
+    "aws-cdk": "2.1137.0",
+    "jest": "^30",
+    "tsx": "^4.23.0",
+    "typescript": "~7.0.2"
+  },
+  "dependencies": {
+    "@aws-sdk/client-connect": "^3.1115.0",
+    "@aws-sdk/client-dynamodb": "^3.1115.0",
+    "@aws-sdk/client-lambda": "^3.1115.0",
+    "@aws-sdk/client-s3": "^3.1115.0",
+    "aws-cdk-lib": "^2.265.0",
+    "constructs": "^10.5.0",
+    "exceljs": "^4.4.0"
+  }
+}

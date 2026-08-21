@@ -1,0 +1,21 @@
+version: "0.2"
+phases:
+  install:
+    runtime-versions:
+      nodejs: 24
+    commands:
+      - echo Installing dependencies...
+      - npm install -g aws-cdk
+      - npm install exceljs
+  pre_build:
+    commands:
+      - echo Nothing to do in pre_build phase...
+  build:
+    commands:
+      - echo Build started on `date`
+      - echo "Building CDK application"
+      - cdk deploy --require-approval never
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo "Deployment completed"
