@@ -117,7 +117,7 @@ export class BsAutomatedTestingTypescriptCdkStack extends cdk.Stack {
       handler: 'handler',
       timeout: Duration.seconds(300),
       initialPolicy: [testCaseAuthoringPolicy],
-      entry: path.join(__dirname, '../src/lambda_functions/universal-test-cases-gen.ts'),
+      entry: path.join(__dirname, '../lambda/universal-test-cases-gen.ts'),
       environment: {
         'AUTO_TEST_TABLE_NAME': automatedTestingDynamodbTable.tableName,
         'AUTO_TEST_KEY_NAME': automatedTestingPartitionKey,
@@ -142,7 +142,7 @@ export class BsAutomatedTestingTypescriptCdkStack extends cdk.Stack {
       handler: 'handler',
       timeout: Duration.seconds(300),
       initialPolicy: [testCaseResultsPolicy],
-      entry: path.join(__dirname, '../src/lambda_functions/automated-testing-results.ts'),
+      entry: path.join(__dirname, '../lambda/automated-testing-results.ts'),
       environment: {
         'INSTANCE_ID': instance_id,
         'KEY_NAME': resultsTablePartitionKey,
