@@ -10,8 +10,8 @@ import { Duration } from 'aws-cdk-lib/core';
 import * as path from 'path';
 
 export const TARGET_ENV = {
-  account: "687244881512",
-  region: "af-south-1"
+  account: process.env.account,
+  region: process.env.region
 } as const;
 
 
