@@ -9,10 +9,6 @@ import * as eventsources from 'aws-cdk-lib/aws-lambda-event-sources';
 import { Duration } from 'aws-cdk-lib/core';
 import * as path from 'path';
 
-export const TARGET_ENV = {
-  account: process.env.account,
-  region: process.env.region
-} as const;
 
 
 export class BsAutomatedTestingTypescriptCdkStack extends cdk.Stack {
@@ -20,8 +16,8 @@ export class BsAutomatedTestingTypescriptCdkStack extends cdk.Stack {
     super(scope, id, props);
 
     const instance_id = "6e669f6f-3783-4c0e-ac76-4f531575015d"
-    const region = TARGET_ENV.region
-    const account_id = TARGET_ENV.account
+    const region = this.region
+    const account_id = this.account
 
     const automatedTestingSortKey = "testing-option";
     const automatedTestingPartitionKey = "flow-name";
