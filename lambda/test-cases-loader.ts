@@ -19,6 +19,9 @@ import {
 
   // Stamped onto every loaded item so a later S3 delete can find what it created.
   const SOURCE_KEY_ATTR = "source_object_key";
+  // Stamped onto items that came from a named wrapper ({"test1": {...}, "test2": {...}}),
+  // so the DynamoDB item can be traced back to the block that produced it.
+  const TEST_CASE_NAME_ATTR = "test_case_name";
 
   const BATCH_SIZE = 25;
   const MAX_BATCH_RETRIES = 5;
@@ -43,14 +46,36 @@ import {
     return decodeURIComponent(record.s3.object.key.replace(/\+/g, " "));
   }
 
-  // The uploaded file may hold a single config object or an array of them.
+  // The uploaded file may hold a single config object, an array of them, or a map of
+  // named configs — {"test1": {...}, "test2": {...}} — which yields one item per name.
+  function toCandidates(parsed: unknown, source: string): { label: string; name?: string; value: unknown }[] {
+    if (Array.isArray(parsed)) {
+      return parsed.map((value, i) => ({ label: `${source}[${i}]`, value }));
+    }
+
+    if (typeof parsed !== "object" || parsed === null) {
+      throw new Error(`${source} is not a JSON object`);
+    }
+
+    // A single config carries the table keys at the top level; a named map does not.
+    const record = parsed as Record<string, unknown>;
+    if (KEY_NAME in record) {
+      return [{ label: source, value: record }];
+    }
+
+    const names = Object.keys(record);
+    if (names.length === 0) {
+      throw new Error(`${source} contains no test cases`);
+    }
+
+    return names.map((name) => ({ label: `${source}#${name}`, name, value: record[name] }));
+  }
+
   function toItems(parsed: unknown, key: string, source: string): TestCaseItem[] {
-    const candidates = Array.isArray(parsed) ? parsed : [parsed];
+    const seen = new Map<string, string>();
 
-    return candidates.map((candidate, i) => {
-      const label = Array.isArray(parsed) ? `${source}[${i}]` : source;
-
-      if (typeof candidate !== "object" || candidate === null) {
+    return toCandidates(parsed, source).map(({ label, name, value: candidate }) => {
+      if (typeof candidate !== "object" || candidate === null || Array.isArray(candidate)) {
         throw new Error(`${label} is not a JSON object`);
       }
 
@@ -68,6 +93,18 @@ import {
         item[keyName] = String(value);
       }
 
+      // BatchWriteItem rejects a batch containing two writes to the same key, so
+      // point at the offending pair rather than failing with a generic SDK error.
+      const itemKey = `${item[KEY_NAME]}#${item[SORT_KEY]}`;
+      const duplicate = seen.get(itemKey);
+      if (duplicate) {
+        throw new Error(
+          `${label} and ${duplicate} share the same ${KEY_NAME}/${SORT_KEY} ("${item[KEY_NAME]}" / "${item[SORT_KEY]}") — each test case needs a unique pair`
+        );
+      }
+      seen.set(itemKey, label);
+
+      if (name !== undefined) item[TEST_CASE_NAME_ATTR] = name;
       item[SOURCE_KEY_ATTR] = key;
       return item;
     });

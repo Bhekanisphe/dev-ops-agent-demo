@@ -1,6 +1,50 @@
 {
+    "test1":
+    {
     "flow-name": "BM-Test-IaC-Flow",
-    "testing-option": "1.2",
+    "testing-option": "1.2_",
+    "caller_number": "+1234567890",
+    "hours_of_operation": "4605e369-8882-44d8-a3e9-069bb7fb7120",
+    "hours_of_operation_results": "InHour",
+    "compliance_massage": {
+     "next": "Option 1",
+     "Observe": {
+      "message": "Please note that this call may be recorded or monitored for quality assurance and training purposes."
+     }
+    },
+    "description": "Testting option 1.2 for the flow BM-Test-IaC-Flow",
+    "Option 1": {
+     "Action": {
+      "type": "DtmfInput",
+      "user_action": "1"
+     },
+     "next": "Option 1.2",
+     "Observe": {
+      "message": "Please press one for technical issues.\nPress two for Sales.\nPress three for general queries.\nPress Star to repeat the menu options"
+     }
+    },
+    "Option 1.2": {
+     "Action": {
+      "type": "DtmfInput",
+      "user_action": "1"
+     },
+     "next": "check_queue",
+     "Observe": {
+      "message": "Welcome to the technical help menu options.\nPlease press one for WiFi issues, press two for laptop issues.\nPress hash to repeat or press star to return to the main menu."
+     }
+    },
+    "queue": "73e9d156-a62d-4471-9cbb-af126df78a1d",
+    "welcome_message": {
+     "next": "compliance_massage",
+     "Observe": {
+      "message": "Welcome to the test flow"
+     }
+    }
+},
+    "test2":
+    {
+        "flow-name": "BM-Test-IaC-Flow",
+    "testing-option": "1.1",
     "caller_number": "+1234567890",
     "hours_of_operation": "4605e369-8882-44d8-a3e9-069bb7fb7120",
     "hours_of_operation_results": "InHour",
@@ -31,11 +75,12 @@
       "message": "Welcome to the technical help menu options.\nPlease press one for WiFi issues, press two for laptop issues.\nPress hash to repeat or press star to return to the main menu."
      }
     },
-    "queue": "14b354a2-c688-4e1f-9ba6-e90089a615cc",
+    "queue": "73e9d156-a62d-4471-9cbb-af126df78a1d",
     "welcome_message": {
      "next": "compliance_massage",
      "Observe": {
       "message": "Welcome to the test flow"
      }
     }
-   }
+    }
+}
