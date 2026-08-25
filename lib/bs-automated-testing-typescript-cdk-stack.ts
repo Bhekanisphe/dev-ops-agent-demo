@@ -22,9 +22,18 @@ export class BsAutomatedTestingTypescriptCdkStack extends cdk.Stack {
     const automatedTestingSortKey = "testing-option";
     const automatedTestingPartitionKey = "flow-name";
 
+    // Lets the loader find the items a given config object created, so deleting
+    // the object from S3 can delete them again.
+    const automatedTestingSourceAttribute = "source_object_key";
+    const automatedTestingSourceIndex = "source-object-index";
+
     const resultsTablePartitionKey = "test-case-id";
     const resultsTableSortKey = "execution-id";
     const resultsObjectName = "test-execution-results.xlsx";
+
+    // Drop-box prefix inside the results bucket. A JSON config uploaded here is
+    // loaded into the automated testing table, whose stream generates the test case.
+    const testCaseDataPrefix = "test-case-data/";
 
     // example resource
 
@@ -48,6 +57,15 @@ export class BsAutomatedTestingTypescriptCdkStack extends cdk.Stack {
       },
       stream: dynamodb.StreamViewType.NEW_IMAGE,
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST
+    });
+
+    automatedTestingDynamodbTable.addGlobalSecondaryIndex({
+      indexName: automatedTestingSourceIndex,
+      partitionKey: {
+        name: automatedTestingSourceAttribute,
+        type: dynamodb.AttributeType.STRING
+      },
+      projectionType: dynamodb.ProjectionType.KEYS_ONLY
     });
 
     const resultsDynamodbTable = new dynamodb.Table(this, 'ResultsTable', {
@@ -132,6 +150,24 @@ export class BsAutomatedTestingTypescriptCdkStack extends cdk.Stack {
       retryAttempts: 15
     }));
 
+    const test_cases_loader = new NodejsFunction(this, 'test_cases_loader', {
+      functionName: "rsa-test-cases-loader-cdk",
+      runtime: lambda.Runtime.NODEJS_24_X,
+      handler: 'handler',
+      timeout: Duration.seconds(300),
+      entry: path.join(__dirname, '../lambda/test-cases-loader.ts'),
+      environment: {
+        'AUTO_TEST_TABLE_NAME': automatedTestingDynamodbTable.tableName,
+        'AUTO_TEST_KEY_NAME': automatedTestingPartitionKey,
+        'AUTO_TEST_SORT_KEY': automatedTestingSortKey,
+        'AUTO_TEST_SOURCE_INDEX': automatedTestingSourceIndex
+      }
+    });
+    test_cases_loader.addEventSource(new eventsources.S3EventSource(resultsBucket, {
+      events: [s3.EventType.OBJECT_CREATED, s3.EventType.OBJECT_REMOVED],
+      filters: [{ prefix: testCaseDataPrefix, suffix: '.json' }]
+    }));
+
     const results_lambdaFunction = new NodejsFunction(this, 'results-lambda', {
       functionName: "rsa-test-results-cdk",
       runtime: lambda.Runtime.NODEJS_24_X,
@@ -158,6 +194,10 @@ export class BsAutomatedTestingTypescriptCdkStack extends cdk.Stack {
     // The DynamoDB stream read permissions are added automatically by addEventSource.
     automatedTestingDynamodbTable.grantReadWriteData(universal_test_cases);
     resultsDynamodbTable.grantReadWriteData(universal_test_cases);
+
+    // Read as well as write: the delete path queries the source-object index.
+    automatedTestingDynamodbTable.grantReadWriteData(test_cases_loader);
+    resultsBucket.grantRead(test_cases_loader, `${testCaseDataPrefix}*`);
 
     resultsDynamodbTable.grantReadWriteData(results_lambdaFunction);
     resultsBucket.grantRead(results_lambdaFunction);
