@@ -37,8 +37,10 @@ export class BsAutomatedTestingTypescriptCdkStack extends cdk.Stack {
 
     // example resource
 
+    const resultsBucketName = "rsa-automated-test-cases-results";
+
     const resultsBucket = new s3.Bucket(this, 'CdkBucket', {
-      bucketName: "rsa-automated-test-cases-results",
+      bucketName: resultsBucketName,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       encryption: s3.BucketEncryption.S3_MANAGED,
       versioned: true
@@ -163,10 +165,47 @@ export class BsAutomatedTestingTypescriptCdkStack extends cdk.Stack {
         'AUTO_TEST_SOURCE_INDEX': automatedTestingSourceIndex
       }
     });
-    test_cases_loader.addEventSource(new eventsources.S3EventSource(resultsBucket, {
-      events: [s3.EventType.OBJECT_CREATED, s3.EventType.OBJECT_REMOVED],
-      filters: [{ prefix: testCaseDataPrefix, suffix: '.json' }]
-    }));
+    // Wire the S3 trigger natively on the bucket instead of via
+    // bucket.addEventNotification()/S3EventSource. Those go through CDK's
+    // BucketNotificationsHandler custom resource, which needs a new IAM role
+    // that this account is not allowed to create. Setting
+    // NotificationConfiguration on the L1 bucket is only possible because the
+    // bucket is defined in this stack, and it needs no extra role or Lambda.
+    const testCaseDataFilter: s3.CfnBucket.NotificationFilterProperty = {
+      s3Key: {
+        rules: [
+          { name: 'prefix', value: testCaseDataPrefix },
+          { name: 'suffix', value: '.json' }
+        ]
+      }
+    };
+
+    const cfnResultsBucket = resultsBucket.node.defaultChild as s3.CfnBucket;
+    cfnResultsBucket.notificationConfiguration = {
+      lambdaConfigurations: [
+        {
+          event: 's3:ObjectCreated:*',
+          filter: testCaseDataFilter,
+          function: test_cases_loader.functionArn
+        },
+        {
+          event: 's3:ObjectRemoved:*',
+          filter: testCaseDataFilter,
+          function: test_cases_loader.functionArn
+        }
+      ]
+    };
+
+    // S3 can only invoke the loader if the function's resource policy allows it.
+    // The source ARN is built from the literal bucket name rather than
+    // resultsBucket.bucketArn so this permission does not depend on the bucket,
+    // which itself now depends on the function.
+    test_cases_loader.addPermission('AllowResultsBucketInvoke', {
+      principal: new iam.ServicePrincipal('s3.amazonaws.com'),
+      action: 'lambda:InvokeFunction',
+      sourceAccount: account_id,
+      sourceArn: `arn:aws:s3:::${resultsBucketName}`
+    });
 
     const results_lambdaFunction = new NodejsFunction(this, 'results-lambda', {
       functionName: "rsa-test-results-cdk",
@@ -202,6 +241,21 @@ export class BsAutomatedTestingTypescriptCdkStack extends cdk.Stack {
     resultsDynamodbTable.grantReadWriteData(results_lambdaFunction);
     resultsBucket.grantRead(results_lambdaFunction);
     resultsBucket.grantPut(results_lambdaFunction);
+
+    // The buildspec uploads the JSON configs committed under test-case-data/ to
+    // the drop-box prefix after the deploy, which is what triggers the loader.
+    // Uploading from the build rather than from a CDK BucketDeployment keeps the
+    // stack free of the custom resource, and of the IAM role that comes with it.
+    // These outputs are how the build learns where to put the files.
+    new cdk.CfnOutput(this, 'TestCaseDataBucketName', {
+      value: resultsBucket.bucketName,
+      description: 'Bucket the test case JSON configs are uploaded to'
+    });
+
+    new cdk.CfnOutput(this, 'TestCaseDataPrefix', {
+      value: testCaseDataPrefix,
+      description: 'Key prefix watched by the test case loader'
+    });
     
 
     // The code that defines your stack goes here

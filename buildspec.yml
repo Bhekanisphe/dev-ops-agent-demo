@@ -14,7 +14,17 @@ phases:
     commands:
       - echo Build started on `date`
       - echo "Building CDK application"
-      - cdk deploy --require-approval never
+      # --outputs-file gives the upload step the bucket name and prefix without
+      # hardcoding them here a second time.
+      - cdk deploy --require-approval never --outputs-file cdk-outputs.json
+      - echo "Uploading test case configs"
+      - BUCKET=$(node -e "const o=require('./cdk-outputs.json');const s=o[Object.keys(o)[0]];console.log(s.TestCaseDataBucketName)")
+      - PREFIX=$(node -e "const o=require('./cdk-outputs.json');const s=o[Object.keys(o)[0]];console.log(s.TestCaseDataPrefix)")
+      # No --delete: the same prefix doubles as a manual drop-box, and deleting a
+      # hand-uploaded config would fire ObjectRemoved, which tears down the test
+      # cases that config created. --size-only stops a fresh git checkout's
+      # timestamps from re-uploading files whose contents have not changed.
+      - aws s3 sync test-case-data/ "s3://$BUCKET/$PREFIX" --exclude "*" --include "*.json" --size-only
   post_build:
     commands:
       - echo Build completed on `date`
