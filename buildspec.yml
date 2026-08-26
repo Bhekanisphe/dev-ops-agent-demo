@@ -1,4 +1,8 @@
 version: "0.2"
+env:
+  variables:
+    # Must match the stack id in bin/bs-automated-testing-typescript-cdk.ts.
+    STACK_NAME: "BsAutomatedTestingTypescriptCdkStack"
 phases:
   install:
     runtime-versions:
@@ -14,12 +18,17 @@ phases:
     commands:
       - echo Build started on `date`
       - echo "Building CDK application"
-      # --outputs-file gives the upload step the bucket name and prefix without
-      # hardcoding them here a second time.
-      - cdk deploy --require-approval never --outputs-file cdk-outputs.json
-      - echo "Uploading test case configs"
-      - BUCKET=$(node -e "const o=require('./cdk-outputs.json');const s=o[Object.keys(o)[0]];console.log(s.TestCaseDataBucketName)")
-      - PREFIX=$(node -e "const o=require('./cdk-outputs.json');const s=o[Object.keys(o)[0]];console.log(s.TestCaseDataPrefix)")
+      - cdk deploy --require-approval never
+      - echo "Resolving upload target from stack outputs"
+      # Read the outputs off the deployed stack rather than from
+      # `cdk deploy --outputs-file`: CDK writes an empty file when the deploy has
+      # no changes to apply, which left this step with nothing to parse.
+      - BUCKET=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query "Stacks[0].Outputs[?OutputKey=='TestCaseDataBucketName'].OutputValue" --output text)
+      - PREFIX=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query "Stacks[0].Outputs[?OutputKey=='TestCaseDataPrefix'].OutputValue" --output text)
+      # Fail loudly rather than syncing to "s3:///" or to the bucket root, where
+      # the notification's prefix filter would not match and nothing would run.
+      - if [ -z "$BUCKET" ] || [ "$BUCKET" = "None" ] || [ -z "$PREFIX" ] || [ "$PREFIX" = "None" ]; then echo "Could not resolve the test case data outputs from stack $STACK_NAME (bucket='$BUCKET' prefix='$PREFIX')"; exit 1; fi
+      - echo "Uploading test case configs to s3://$BUCKET/$PREFIX"
       # No --delete: the same prefix doubles as a manual drop-box, and deleting a
       # hand-uploaded config would fire ObjectRemoved, which tears down the test
       # cases that config created. --size-only stops a fresh git checkout's
