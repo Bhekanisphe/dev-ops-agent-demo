@@ -23,6 +23,7 @@
     "@aws-sdk/client-connect": "^3.1115.0",
     "@aws-sdk/client-dynamodb": "^3.1115.0",
     "@aws-sdk/client-lambda": "^3.1115.0",
+    "@aws-sdk/client-lex-models-v2": "^3.1125.0",
     "@aws-sdk/client-s3": "^3.1115.0",
     "@aws-sdk/util-dynamodb": "^3.996.9",
     "aws-cdk-lib": "^2.265.0",

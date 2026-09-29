@@ -6,8 +6,13 @@ import {
     DescribeQueueCommand,
     DescribeContactFlowCommand,
   } from "@aws-sdk/client-connect";
-  import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
-  import { DynamoDBClient, DeleteItemCommand } from "@aws-sdk/client-dynamodb";
+  import {
+    S3Client,
+    GetObjectCommand,
+    ListObjectsV2Command,
+    PutObjectCommand,
+  } from "@aws-sdk/client-s3";
+  import { DynamoDBClient, DeleteItemCommand, GetItemCommand } from "@aws-sdk/client-dynamodb";
   import ExcelJS from "exceljs";
   import type { DynamoDBStreamEvent, DynamoDBRecord, Context } from "aws-lambda";
   
@@ -20,9 +25,8 @@ import {
   const SORT_NAME = process.env.SORT_NAME as string;
   const RESULTS_BUCKET = process.env.RESULTS_BUCKET as string;
   const OBJECT_NAME = process.env.OBJECT_NAME as string;
+  const RESULTS_PREFIX = process.env.RESULTS_PREFIX as string;
   const RESULTS_TABLE_NAME = process.env.RESULTS_TABLE_NAME as string;
-  
-  let test_case_name: string | undefined;
   
   function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -61,19 +65,31 @@ import {
     hoo_results?: string;
     queue_transfer?: string;
     queue_id?: string;
+    started_at?: Date;
     messages: ChatMessage[];
   }
-  
+
+
+  interface FinishedExecution {
+    started_at?: Date;
+    records: any[];
+  }
+
   interface ResourceNames {
     hoo_name: string;
     queue: string;
     flow: string;
   }
   
+
+  class StillRunningError extends Error {}
+
   async function get_execution_summary(
     execution_id: string,
-    test_case_id: string
-  ): Promise<any | null> {
+    test_case_id: string,
+
+    deadline: number
+  ): Promise<FinishedExecution | null> {
     const get_status = () =>
       connect.send(
         new GetTestCaseExecutionSummaryCommand({
@@ -82,11 +98,9 @@ import {
           TestCaseId: test_case_id,
         })
       );
-  
-    const poll_interval = 3000; // ms
-    const max_wait = 480000; // ms
-    let waited = 0;
-  
+
+    const poll_interval = 3000;
+
     let status: any;
     try {
       status = await get_status();
@@ -99,20 +113,20 @@ import {
       }
       throw e;
     }
-  
+
     while (status.Status !== "FAILED" && status.Status !== "PASSED" && status.Status !== 'STOPPED') {
-      if (waited >= max_wait) {
-        return null;
+
+      if (Date.now() >= deadline) {
+        throw new StillRunningError(
+          `Execution ${execution_id} of test case ${test_case_id} is still ${status.Status} and this invocation is out of time — handing the record back to be retried.`
+        );
       }
       try {
         await sleep(poll_interval);
-        waited += poll_interval;
         status = await get_status();
       } catch (e) {
         if (errorCode(e) === "TooManyRequestsException") {
-          const backoff = poll_interval + (1 + Math.random() * 2) * 1000;
-          await sleep(backoff);
-          waited += backoff;
+          await sleep(poll_interval + (1 + Math.random() * 2) * 1000);
         } else if (errorCode(e) === "ResourceNotFoundException") {
           return null;
         } else {
@@ -120,15 +134,17 @@ import {
         }
       }
     }
-  
+
     try {
-      return await connect.send(
+      const recorded = await connect.send(
         new ListTestCaseExecutionRecordsCommand({
           InstanceId: INSTANCE_ID,
           TestCaseId: test_case_id,
           TestCaseExecutionId: execution_id,
         })
       );
+
+      return { started_at: status.StartTime, records: recorded.ExecutionRecords ?? [] };
     } catch (e) {
       if (errorCode(e) === "ResourceNotFoundException") {
         return null;
@@ -137,11 +153,27 @@ import {
     }
   }
   
-  function get_test_case_results(results: any): TestCaseResults {
-    const test_case_results: TestCaseResults = { messages: [] };
+
+  function customer_input(actions: any[] | undefined): string | undefined {
+    for (const action of actions ?? []) {
+      const value =
+        action?.ActualParameters?.Instruction?.Properties?.Value ??
+        action?.ExpectedParameters?.Instruction?.Properties?.Value;
+      if (value !== undefined) return value;
+    }
+    return undefined;
+  }
+
+  function get_test_case_results(execution: FinishedExecution): TestCaseResults {
+
+    const test_case_results: TestCaseResults = {
+      messages: [],
+      queue_id: "N/A",
+      started_at: execution.started_at,
+    };
     const messages: ChatMessage[] = [];
-  
-    for (const r of results.ExecutionRecords) {
+
+    for (const r of execution.records) {
       const curr_result_record = JSON.parse(r.Record);
       console.log(curr_result_record);
   
@@ -169,12 +201,11 @@ import {
         }
       } else {
         if (curr_result_record.Event.Type === "TestInitiated") {
-          test_case_results.hoo_id =
-            curr_result_record.Actions[0].ExpectedParameters.Behavior.Properties
-              .ActionParameters.HoursOfOperationId;
+          const behavior =
+            curr_result_record.Actions?.[0]?.ExpectedParameters?.Behavior?.Properties;
+          test_case_results.hoo_id = behavior?.ActionParameters?.HoursOfOperationId;
           test_case_results.hoo_results =
-            curr_result_record.Actions[0].ExpectedParameters.Behavior.Properties.Strategy
-              .Response.ExecutionResult.Value;
+            behavior?.Strategy?.Response?.ExecutionResult?.Value;
         }
   
         if (curr_result_record.Event.Type === "MessageReceived") {
@@ -193,27 +224,21 @@ import {
               message_expected: curr_result_record.Event.Properties.ExpectedText,
             };
           }
-          if (curr_result_record.Actions.length > 0) {
-            curr_msg.cust_input =
-              curr_result_record.Actions[0].ActualParameters.Instruction.Properties.Value;
+          const input = customer_input(curr_result_record.Actions);
+          if (input !== undefined) {
+            curr_msg.cust_input = input;
           }
           messages.push(curr_msg);
         }
-  
-        if (
-            curr_result_record.Event?.Type?.includes("FlowActionStarted") &&
-          curr_result_record.Event.Type === "FlowActionStarted"
-        ) {
+
+        if (curr_result_record.Event.Type === "FlowActionStarted") {
           if (curr_result_record.Status === "FAILED") {
             test_case_results.queue_transfer = "FAILED";
-            test_case_results.queue_id = "N/A";
           } else {
             test_case_results.queue_id =
-              curr_result_record.Event.Properties.ActionParameters.QueueId;
+              curr_result_record.Event.Properties?.ActionParameters?.QueueId ?? "N/A";
             test_case_results.queue_transfer = "PASSED";
           }
-        } else {
-          test_case_results.queue_id = "N/A";
         }
       }
     }
@@ -263,19 +288,60 @@ import {
     return { hoo_name, queue: queue_name, flow: flow_name };
   }
   
-  function format_messages_for_cell(messages: ChatMessage[]): string {
-    const lines: string[] = [];
-    for (const msg of messages) {
-      let line =
-        `${msg.identifier} [${msg.Status}]: ` +
-        `received="${msg.message_received ?? ""}" ` +
-        `expected="${msg.message_expected ?? ""}"`;
-      if (msg.cust_input !== undefined) {
-        line += ` | Customer input=${msg.cust_input}`;
+
+  function format_messages_for_cell(messages: ChatMessage[]): ExcelJS.CellRichTextValue {
+    const bold: Partial<ExcelJS.Font> = { bold: true };
+    const rich_text: ExcelJS.RichText[] = [];
+
+    messages.forEach((msg, index) => {
+      if (index > 0) {
+        rich_text.push({ text: "\n" });
       }
-      lines.push(line);
+
+      rich_text.push({ font: bold, text: msg.identifier ?? "step" });
+      rich_text.push({ text: ` [${msg.Status}]` });
+
+      const detail: Array<[string, string]> = [];
+      if (msg.message_received !== undefined) detail.push(["Received", msg.message_received]);
+      if (msg.message_expected !== undefined) detail.push(["Expected", msg.message_expected]);
+      if (msg.cust_input !== undefined) detail.push(["Customer input", msg.cust_input]);
+
+      for (const [label, value] of detail) {
+        rich_text.push({ font: bold, text: `\n    ${label}: ` });
+        rich_text.push({ text: value });
+      }
+    });
+
+    return { richText: rich_text };
+  }
+
+  const RESULTS_TIME_ZONE = "Africa/Johannesburg";
+  const RESULTS_TIME_ZONE_LABEL = "SAST";
+
+  const executed_at_parts = new Intl.DateTimeFormat("en-ZA", {
+    timeZone: RESULTS_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  });
+
+
+  function format_executed_at(at: Date | string | undefined): string {
+    if (at === undefined) return "N/A";
+
+    const when = at instanceof Date ? at : new Date(at);
+    if (Number.isNaN(when.getTime())) return "N/A";
+
+    const parts: Record<string, string> = {};
+    for (const part of executed_at_parts.formatToParts(when)) {
+      parts[part.type] = part.value;
     }
-    return lines.join("\n");
+
+    return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
   }
   
   const EXCEL_CONTENT_TYPE =
@@ -283,10 +349,6 @@ import {
 
   const RESULTS_SHEET_NAME = "Test results";
 
-  /**
-   * Columns A-I, in the order write_to_excel fills them. Only used for a workbook this
-   * function creates itself — an existing file keeps whatever headings it already has.
-   */
   const RESULTS_HEADINGS: Array<{ header: string; width: number }> = [
     { header: "Flow/Number", width: 30 },
     { header: "Testing option", width: 30 },
@@ -297,13 +359,26 @@ import {
     { header: "Comments", width: 40 },
     { header: "Queue transfer", width: 34 },
     { header: "Contact ID", width: 38 },
+    { header: `Executed at (${RESULTS_TIME_ZONE_LABEL})`, width: 22 },
   ];
 
-  /**
-   * True when S3 is telling us the workbook simply isn't there yet. A missing key comes
-   * back as NoSuchKey, but the SDK reports the same condition as NotFound on some paths
-   * (and a 404 with no name at all), so all three count as "create it".
-   */
+  export function flow_results_key(flow: string): string {
+    const file_name =
+      flow.replace(/[^A-Za-z0-9._+@-]+/g, "-").replace(/^-+|-+$/g, "") || "unknown-flow";
+
+    return `${RESULTS_PREFIX}${file_name}.xlsx`;
+  }
+
+
+  async function workbook_exists(key: string): Promise<boolean> {
+    const page = await s3.send(
+      new ListObjectsV2Command({ Bucket: RESULTS_BUCKET, Prefix: key, MaxKeys: 1 })
+    );
+
+    return page.Contents?.[0]?.Key === key;
+  }
+
+
   function is_missing_object(e: unknown): boolean {
     const name = errorCode(e);
     if (name === "NoSuchKey" || name === "NotFound") {
@@ -312,7 +387,7 @@ import {
     return (e as { $metadata?: { httpStatusCode?: number } })?.$metadata?.httpStatusCode === 404;
   }
 
-  /** Adds the results sheet with a frozen, bold heading row, and returns it. */
+
   function create_results_sheet(workbook: ExcelJS.Workbook): ExcelJS.Worksheet {
     const worksheet = workbook.addWorksheet(RESULTS_SHEET_NAME, {
       views: [{ state: "frozen", ySplit: 1 }],
@@ -328,46 +403,88 @@ import {
     return worksheet;
   }
 
-  /**
-   * The sheet to append this run's row to. The workbook is created on the first run
-   * against a fresh bucket — nothing else puts it there, so a missing object is normal
-   * rather than an error, and treating it as one used to fail every result until someone
-   * uploaded a template by hand.
-   *
-   * Exported for the unit test; the handler reaches it through write_to_excel.
-   */
-  export async function load_results_sheet(): Promise<ExcelJS.Worksheet> {
+  export interface LoadedSheet {
+    worksheet: ExcelJS.Worksheet;
+    etag?: string;
+  }
+
+  export async function load_results_sheet(key: string): Promise<LoadedSheet> {
+    const new_workbook = (): LoadedSheet => ({
+      worksheet: create_results_sheet(new ExcelJS.Workbook()),
+    });
+
     let excel_buffer_in: Buffer;
+    let etag: string | undefined;
     try {
-      const getResp = await s3.send(
-        new GetObjectCommand({ Bucket: RESULTS_BUCKET, Key: OBJECT_NAME })
-      );
+      if (!(await workbook_exists(key))) {
+        console.log(`s3://${RESULTS_BUCKET}/${key} does not exist yet — creating a new workbook.`);
+        return new_workbook();
+      }
+
+      const getResp = await s3.send(new GetObjectCommand({ Bucket: RESULTS_BUCKET, Key: key }));
+      etag = getResp.ETag;
       excel_buffer_in = await streamToBuffer(getResp.Body);
     } catch (e) {
       if (!is_missing_object(e)) {
         throw e;
       }
-      console.log(
-        `s3://${RESULTS_BUCKET}/${OBJECT_NAME} does not exist yet — creating a new workbook.`
-      );
-      return create_results_sheet(new ExcelJS.Workbook());
+      console.log(`s3://${RESULTS_BUCKET}/${key} went away while being read — creating a new workbook.`);
+      return new_workbook();
     }
 
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(excel_buffer_in as any);
-    // An object that exists but holds no sheets would otherwise crash on getCell below.
-    return workbook.worksheets[0] ?? create_results_sheet(workbook);
+
+    return { worksheet: workbook.worksheets[0] ?? create_results_sheet(workbook), etag };
   }
 
-  async function write_to_excel(
+
+  function is_write_conflict(e: unknown): boolean {
+    const name = errorCode(e);
+    if (name === "PreconditionFailed" || name === "ConditionalRequestConflict") {
+      return true;
+    }
+    const status = (e as { $metadata?: { httpStatusCode?: number } })?.$metadata
+      ?.httpStatusCode;
+    return status === 409 || status === 412;
+  }
+
+  const MAX_WRITE_ATTEMPTS = 10;
+
+  async function append_result_row(
+    key: string,
+    test_case_name: string,
     test_case_results: TestCaseResults,
     resource_names: ResourceNames
   ): Promise<void> {
-    const worksheet = await load_results_sheet();
+    for (let attempt = 1; ; attempt++) {
+      try {
+        await write_result_row(key, test_case_name, test_case_results, resource_names);
+        return;
+      } catch (e) {
+        if (!is_write_conflict(e) || attempt >= MAX_WRITE_ATTEMPTS) throw e;
+        console.log(
+          `s3://${RESULTS_BUCKET}/${key} was written by another result — re-reading it (attempt ${attempt}).`
+        );
+
+        await sleep(100 * attempt + Math.random() * 400);
+      }
+    }
+  }
+
+
+  async function write_result_row(
+    key: string,
+
+    test_case_name: string,
+    test_case_results: TestCaseResults,
+    resource_names: ResourceNames
+  ): Promise<void> {
+    const { worksheet, etag } = await load_results_sheet(key);
     const workbook = worksheet.workbook;
 
     const next_row = worksheet.actualRowCount + 1;
-  
+
     const red_fill: ExcelJS.Fill = {
       type: "pattern",
       pattern: "solid",
@@ -386,72 +503,140 @@ import {
     }
   
     worksheet.getCell(`A${next_row}`).value = resource_names.flow;
-    worksheet.getCell(`B${next_row}`).value = test_case_name!.split(":")[1];
+    worksheet.getCell(`B${next_row}`).value = test_case_name.split(":")[1];
     worksheet.getCell(`C${next_row}`).value = resource_names.hoo_name;
     worksheet.getCell(`D${next_row}`).value = test_case_results.hoo_results;
   
-    const cell = worksheet.getCell(`E${next_row}`);
-    cell.value = format_messages_for_cell(test_case_results.messages);
-    cell.alignment = { wrapText: true, vertical: "top", horizontal: "left"};
-  
+    worksheet.getCell(`E${next_row}`).value = format_messages_for_cell(
+      test_case_results.messages
+    );
+
     worksheet.getCell(`F${next_row}`).value = test_case_results.comp_results;
     worksheet.getCell(`G${next_row}`).value = test_case_results.comp_message;
+
     worksheet.getCell(`H${next_row}`).value =
-      `[${test_case_results.queue_transfer ?? "N/A"}] - ` +
-      `Transferred to ${resource_names.queue}`;
+      test_case_results.queue_transfer === undefined
+        ? "N/A"
+        : `[${test_case_results.queue_transfer}] - Transferred to ${resource_names.queue}`;
     worksheet.getCell(`I${next_row}`).value = test_case_results.contact_id;
+    worksheet.getCell(`J${next_row}`).value = format_executed_at(test_case_results.started_at);
+
+    worksheet.getRow(next_row).alignment = {
+      vertical: "top",
+      horizontal: "left",
+      wrapText: true,
+    };
   
     const excel_buffer_out = await workbook.xlsx.writeBuffer();
-  
+
     await s3.send(
       new PutObjectCommand({
         Bucket: RESULTS_BUCKET,
-        Key: OBJECT_NAME,
+        Key: key,
         Body: Buffer.from(excel_buffer_out),
         ContentType: EXCEL_CONTENT_TYPE,
+
+        ...(etag ? { IfMatch: etag } : { IfNoneMatch: "*" }),
       })
     );
+
+    console.log(`Wrote the ${resource_names.flow} result to s3://${RESULTS_BUCKET}/${key}`);
   }
-  
+
+
+  async function write_to_excel(
+    test_case_name: string,
+    test_case_results: TestCaseResults,
+    resource_names: ResourceNames
+  ): Promise<void> {
+    for (const key of [OBJECT_NAME, flow_results_key(resource_names.flow)]) {
+      await append_result_row(key, test_case_name, test_case_results, resource_names);
+    }
+  }
+
+  const WRITE_BUDGET_MS = 45000;
+
+  const DEFAULT_POLL_BUDGET_MS = 480000;
+
+  async function is_unwritten(test_case_id: string, execution_id: string): Promise<boolean> {
+    const { Item } = await dynamodb.send(
+      new GetItemCommand({
+        TableName: RESULTS_TABLE_NAME,
+        Key: {
+          [KEY_NAME]: { S: test_case_id },
+          [SORT_NAME]: { S: execution_id },
+        },
+        ConsistentRead: true,
+      })
+    );
+    return Item !== undefined;
+  }
+
   export async function handler(
     event: DynamoDBStreamEvent,
-    _context?: Context
-  ): Promise<{ statusCode: number; body: string }> {
+    context?: Context
+  ): Promise<{ batchItemFailures: { itemIdentifier: string }[] }> {
     console.log(event.Records);
-  
-    for (const record of event.Records as DynamoDBRecord[]) {
+
+    const remaining = context?.getRemainingTimeInMillis?.() ?? DEFAULT_POLL_BUDGET_MS + WRITE_BUDGET_MS;
+    const deadline = Date.now() + Math.max(remaining - WRITE_BUDGET_MS, 0);
+
+    const records = event.Records as DynamoDBRecord[];
+
+    for (let i = 0; i < records.length; i++) {
+      const record = records[i];
       if (record.eventName !== "INSERT") {
         continue;
       }
-  
+
       const keys = record.dynamodb!.Keys as Record<string, any>;
       const test_case_id = Object.values(keys[KEY_NAME])[0] as string;
       const execution_id = Object.values(keys[SORT_NAME])[0] as string;
-  
+
       const new_image = (record.dynamodb!.NewImage ?? {}) as Record<string, any>;
-  
-      test_case_name = new_image["Test_case_name"]?.S;
-  
+
+      const test_case_name = (new_image["Test_case_name"]?.S ?? "") as string;
+
       console.log(`Test case ID: ${test_case_id}`);
-  
-      const results = await get_execution_summary(execution_id, test_case_id);
-      if (results === null) {
-        continue;
+
+      try {
+        if (!(await is_unwritten(test_case_id, execution_id))) {
+          console.log(
+            `Execution ${execution_id} of test case ${test_case_id} has already been written to the workbook. Skipping.`
+          );
+          continue;
+        }
+
+        const execution = await get_execution_summary(execution_id, test_case_id, deadline);
+        if (execution === null) {
+          continue;
+        }
+        const test_case_results = get_test_case_results(execution);
+        const resource_names = await get_resource_names(test_case_results);
+        await write_to_excel(test_case_name, test_case_results, resource_names);
+
+        await dynamodb.send(
+          new DeleteItemCommand({
+            TableName: RESULTS_TABLE_NAME,
+            Key: {
+              [KEY_NAME]: { S: test_case_id },
+              [SORT_NAME]: { S: execution_id },
+            },
+          })
+        );
+      } catch (e) {
+        console.error(
+          e instanceof StillRunningError
+            ? (e as Error).message
+            : `Failed to write the result of execution ${execution_id}: ${e}`
+        );
+        return {
+          batchItemFailures: records
+            .slice(i)
+            .map((r) => ({ itemIdentifier: r.dynamodb!.SequenceNumber! })),
+        };
       }
-      const test_case_results = get_test_case_results(results);
-      const resource_names = await get_resource_names(test_case_results);
-      await write_to_excel(test_case_results, resource_names);
-  
-      await dynamodb.send(
-        new DeleteItemCommand({
-          TableName: RESULTS_TABLE_NAME,
-          Key: {
-            [KEY_NAME]: { S: test_case_id },
-            [SORT_NAME]: { S: execution_id },
-          },
-        })
-      );
     }
-  
-    return { statusCode: 200, body: "Record Successfully populated in the excel file" };
+
+    return { batchItemFailures: [] };
   }

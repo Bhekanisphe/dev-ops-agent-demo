@@ -1,0 +1,59 @@
+{
+  "Version": "2019-10-30",
+  "StartAction": "098007b7-e257-4b7c-9c3c-741d4680517d",
+  "Metadata": {
+    "entryPointPosition": {
+      "x": 243,
+      "y": 172
+    },
+    "snapToGrid": false,
+    "ActionMetadata": {
+      "098007b7-e257-4b7c-9c3c-741d4680517d": {
+        "position": {
+          "x": 433,
+          "y": 236
+        },
+        "audio": [
+          {
+            "type": "Text",
+            "tts": "Thank you for calling. Your call is very important to us and will be answered in the order it was received.",
+            "$$hashKey": "02A"
+          },
+          {
+            "type": "Prompt",
+            "prompt": {
+              "id": "arn:aws:connect:af-south-1:687244881512:instance/6e669f6f-3783-4c0e-ac76-4f531575015d/prompt/b9431a1c-295c-4af4-a6e6-11c174a321e3",
+              "text": "Music_Pop_ThisAndThatIsLife_Inst.wav"
+            },
+            "$$hashKey": "02B"
+          }
+        ],
+        "timeoutUnit": {
+          "display": "Minutes",
+          "value": "min"
+        }
+      }
+    },
+    "name": "Default customer queue"
+  },
+  "Actions": [
+    {
+      "Identifier": "098007b7-e257-4b7c-9c3c-741d4680517d",
+      "Parameters": {
+        "Messages": [
+          {
+            "Text": "Thank you for calling. Your call is very important to us and will be answered in the order it was received."
+          },
+          {
+            "PromptId": "arn:aws:connect:af-south-1:687244881512:instance/6e669f6f-3783-4c0e-ac76-4f531575015d/prompt/b9431a1c-295c-4af4-a6e6-11c174a321e3"
+          }
+        ]
+      },
+      "Transitions": {
+        "Errors": [],
+        "Conditions": []
+      },
+      "Type": "MessageParticipantIteratively"
+    }
+  ]
+}

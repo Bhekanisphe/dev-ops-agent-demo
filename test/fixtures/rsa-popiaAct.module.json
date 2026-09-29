@@ -1,0 +1,67 @@
+{
+  "Version": "2019-10-30",
+  "StartAction": "c55a60c9-5ba4-4df7-8579-1b226880abc8",
+  "Metadata": {
+    "entryPointPosition": {
+      "x": 40,
+      "y": 40
+    },
+    "ActionMetadata": {
+      "b73e95b6-efee-4137-859b-708f384178e8": {
+        "position": {
+          "x": 501.6,
+          "y": 60
+        }
+      },
+      "c55a60c9-5ba4-4df7-8579-1b226880abc8": {
+        "position": {
+          "x": 227.2,
+          "y": 18.4
+        }
+      }
+    },
+    "Annotations": [],
+    "name": "rsa-popiaAct"
+  },
+  "Actions": [
+    {
+      "Parameters": {},
+      "Identifier": "b73e95b6-efee-4137-859b-708f384178e8",
+      "Type": "EndFlowModuleExecution",
+      "Transitions": {}
+    },
+    {
+      "Parameters": {
+        "SkipWhenDTMFBufferEnabled": "false",
+        "Text": "By staying on the line, you consent to your personal information being collected and processed in accordance with the Protection of Personal Information Act."
+      },
+      "Identifier": "c55a60c9-5ba4-4df7-8579-1b226880abc8",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "b73e95b6-efee-4137-859b-708f384178e8",
+        "Errors": [
+          {
+            "NextAction": "b73e95b6-efee-4137-859b-708f384178e8",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    }
+  ],
+  "Settings": {
+    "InputParameters": [],
+    "OutputParameters": [],
+    "Transitions": [
+      {
+        "DisplayName": "Success",
+        "ReferenceName": "Success",
+        "Description": ""
+      },
+      {
+        "DisplayName": "Error",
+        "ReferenceName": "Error",
+        "Description": ""
+      }
+    ]
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "external": {
+    "agentWording": "banker",
+    "dicommisioned": [
+      "false", "true"
+    ],
+    "isInHoursEmergency": [
+      "false", "true"
+    ],
+    "isOutOfHoursEmergency": [
+      "false", "true"
+    ],
+    "inHourEmergencyMessage": "Please note that our line are having problems today. Please try again. Thank you",
+    "outOfHourEmergencyMessage": "Please note that our line are having problems today. Please try again during office hours. Thank you"
+  },
+  "stored_input": {
+    "ref-number": "24680"
+  },
+  "paths": [
+    "dicommisioned-false.isInHoursEmergency-false.2.{ref-number}.1.24352",
+    "dicommisioned-false.isInHoursEmergency-false.2.{ref-number}.1.24680",
+    "dicommisioned-false.isInHoursEmergency-false.2.{ref-number}.1.AUTH123456"
+  ]
+}

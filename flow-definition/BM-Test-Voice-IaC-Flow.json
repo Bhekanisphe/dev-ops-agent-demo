@@ -1,0 +1,622 @@
+{
+  "Version": "2019-10-30",
+  "StartAction": "c843a2fc-94d2-4ef9-bec7-4703e9e75d70",
+  "Metadata": {
+    "entryPointPosition": {
+      "x": 40,
+      "y": 40
+    },
+    "ActionMetadata": {
+      "3f892c9d-19bd-442d-9d73-63e4ca2f918e": {
+        "position": {
+          "x": 350.4,
+          "y": 367.2
+        }
+      },
+      "54d06529-5512-4885-b1fe-f64244baebae": {
+        "position": {
+          "x": 1076,
+          "y": 336
+        },
+        "parameters": {
+          "QueueId": {
+            "displayName": "BM-Test-Sales-IaC"
+          }
+        },
+        "queue": {
+          "text": "BM-Test-Sales-IaC"
+        }
+      },
+      "3d5df375-c4cd-4b95-91f0-81b594d89dc4": {
+        "position": {
+          "x": 2348,
+          "y": 4
+        },
+        "parameters": {
+          "QueueId": {
+            "displayName": "BM-Test-Technical-Wifi-IaC"
+          }
+        },
+        "queue": {
+          "text": "BM-Test-Technical-Wifi-IaC"
+        }
+      },
+      "f8f3899c-f96e-4f5e-a910-f80f1b0224d9": {
+        "position": {
+          "x": 2343.2,
+          "y": 251.2
+        },
+        "parameters": {
+          "QueueId": {
+            "displayName": "BM-Test-Technical-Laptop-IaC"
+          }
+        },
+        "queue": {
+          "text": "BM-Test-Technical-Laptop-IaC"
+        }
+      },
+      "be8f0654-b5d5-49e0-8556-c2d49b0e1334": {
+        "position": {
+          "x": 2049.6,
+          "y": 604.8
+        }
+      },
+      "d8a08e3b-2a97-4ba1-9b05-95650a5ffa63": {
+        "position": {
+          "x": 1023.2,
+          "y": -184
+        }
+      },
+      "f93dc0a3-c422-4d43-8cfa-ec1797719e26": {
+        "position": {
+          "x": 451.2,
+          "y": 44.8
+        }
+      },
+      "c843a2fc-94d2-4ef9-bec7-4703e9e75d70": {
+        "position": {
+          "x": 180,
+          "y": 40.8
+        }
+      },
+      "121dd7de-eac3-451b-9c9d-67162ec75feb": {
+        "position": {
+          "x": 767.2,
+          "y": -210.4
+        }
+      },
+      "3ecd3272-e51f-4e2e-a210-b4a4c8939281": {
+        "position": {
+          "x": 451.2,
+          "y": -207.2
+        },
+        "parameters": {
+          "HoursOfOperationId": {
+            "displayName": "BM-Test-HOO - IaC"
+          }
+        },
+        "Hours": {
+          "id": "arn:aws:connect:af-south-1:687244881512:instance/6e669f6f-3783-4c0e-ac76-4f531575015d/operating-hours/4605e369-8882-44d8-a3e9-069bb7fb7120",
+          "text": "BM-Test-HOO - IaC"
+        }
+      },
+      "fbe0d940-fbef-46ec-a888-8a1187b520d0": {
+        "position": {
+          "x": 1465.6,
+          "y": 102.4
+        }
+      },
+      "2a261194-ddb3-4941-aeb2-1d6d1e85d56c": {
+        "position": {
+          "x": 788,
+          "y": 596
+        }
+      },
+      "492ba086-cbf7-40fe-98c6-001d6ec46913": {
+        "position": {
+          "x": 2046.4,
+          "y": 40.8
+        },
+        "parameters": {
+          "LexV2Bot": {
+            "AliasArn": {
+              "displayName": "TestBotAlias",
+              "useLexBotDropdown": true,
+              "lexV2BotName": "bs-automated-testing"
+            }
+          }
+        },
+        "useLexBotDropdown": true,
+        "lexV2BotName": "bs-automated-testing",
+        "lexV2BotAliasName": "TestBotAlias",
+        "conditionMetadata": [
+          {
+            "id": "67a8d15c-c9db-4f54-ba5a-65206c457a17",
+            "operator": {
+              "name": "Equals",
+              "value": "Equals",
+              "shortDisplay": "="
+            },
+            "value": "bs-technical-wifi"
+          },
+          {
+            "id": "0983365c-079b-46e3-9312-917f847b7691",
+            "operator": {
+              "name": "Equals",
+              "value": "Equals",
+              "shortDisplay": "="
+            },
+            "value": "bs-technical-laptop"
+          }
+        ]
+      },
+      "28134773-14de-404c-98b3-bd43ab4e921e": {
+        "position": {
+          "x": 763.2,
+          "y": 76.8
+        },
+        "parameters": {
+          "LexV2Bot": {
+            "AliasArn": {
+              "displayName": "TestBotAlias",
+              "useLexBotDropdown": true,
+              "lexV2BotName": "bs-automated-testing"
+            }
+          }
+        },
+        "useLexBotDropdown": true,
+        "lexV2BotName": "bs-automated-testing",
+        "lexV2BotAliasName": "TestBotAlias",
+        "conditionMetadata": [
+          {
+            "id": "fab1965c-ac05-4c47-8ad3-964f9538e2e3",
+            "operator": {
+              "name": "Equals",
+              "value": "Equals",
+              "shortDisplay": "="
+            },
+            "value": "bs-general"
+          },
+          {
+            "id": "2faf418c-ef3a-4172-ac75-7f9e4438d4d5",
+            "operator": {
+              "name": "Equals",
+              "value": "Equals",
+              "shortDisplay": "="
+            },
+            "value": "bs-technical"
+          },
+          {
+            "id": "4c2c50d7-6033-48c3-b1d7-876ddda4cd11",
+            "operator": {
+              "name": "Equals",
+              "value": "Equals",
+              "shortDisplay": "="
+            },
+            "value": "bs-sales"
+          }
+        ]
+      },
+      "e04f5462-df2d-4376-8b36-50dac8b30206": {
+        "position": {
+          "x": 1476,
+          "y": 376
+        }
+      },
+      "e36133de-bbf8-48c3-8ee0-5ed9f71174e1": {
+        "position": {
+          "x": 1220,
+          "y": -35.2
+        },
+        "parameters": {
+          "QueueId": {
+            "displayName": "BM-Test-General-IaC"
+          }
+        },
+        "queue": {
+          "text": "BM-Test-General-IaC"
+        }
+      },
+      "67483666-27b4-45c9-9144-b0cde914f7ad": {
+        "position": {
+          "x": 818.4,
+          "y": 384.8
+        }
+      },
+      "d8b7ad90-541e-4877-9e0a-cdcbf4378804": {
+        "position": {
+          "x": 971.2,
+          "y": -28
+        }
+      }
+    },
+    "Annotations": [],
+    "name": "BM-Test-Voice-IaC-Flow",
+    "description": "Test Contact Flow (Voice) made by IaC with file upload",
+    "type": "contactFlow",
+    "status": "published",
+    "hash": {}
+  },
+  "Actions": [
+    {
+      "Parameters": {},
+      "Identifier": "3f892c9d-19bd-442d-9d73-63e4ca2f918e",
+      "Type": "EndFlowExecution",
+      "Transitions": {}
+    },
+    {
+      "Parameters": {
+        "QueueId": "arn:aws:connect:af-south-1:687244881512:instance/6e669f6f-3783-4c0e-ac76-4f531575015d/queue/6b1b6ba4-22cb-4ace-a1ec-77cbde8fd152"
+      },
+      "Identifier": "54d06529-5512-4885-b1fe-f64244baebae",
+      "Type": "UpdateContactTargetQueue",
+      "Transitions": {
+        "NextAction": "fbe0d940-fbef-46ec-a888-8a1187b520d0",
+        "Errors": [
+          {
+            "NextAction": "e04f5462-df2d-4376-8b36-50dac8b30206",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "QueueId": "arn:aws:connect:af-south-1:687244881512:instance/6e669f6f-3783-4c0e-ac76-4f531575015d/queue/73e9d156-a62d-4471-9cbb-af126df78a1d"
+      },
+      "Identifier": "3d5df375-c4cd-4b95-91f0-81b594d89dc4",
+      "Type": "UpdateContactTargetQueue",
+      "Transitions": {
+        "NextAction": "fbe0d940-fbef-46ec-a888-8a1187b520d0",
+        "Errors": [
+          {
+            "NextAction": "e04f5462-df2d-4376-8b36-50dac8b30206",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "QueueId": "arn:aws:connect:af-south-1:687244881512:instance/6e669f6f-3783-4c0e-ac76-4f531575015d/queue/14b354a2-c688-4e1f-9ba6-e90089a615cc"
+      },
+      "Identifier": "f8f3899c-f96e-4f5e-a910-f80f1b0224d9",
+      "Type": "UpdateContactTargetQueue",
+      "Transitions": {
+        "NextAction": "fbe0d940-fbef-46ec-a888-8a1187b520d0",
+        "Errors": [
+          {
+            "NextAction": "e04f5462-df2d-4376-8b36-50dac8b30206",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {},
+      "Identifier": "be8f0654-b5d5-49e0-8556-c2d49b0e1334",
+      "Type": "EndFlowExecution",
+      "Transitions": {}
+    },
+    {
+      "Parameters": {},
+      "Identifier": "d8a08e3b-2a97-4ba1-9b05-95650a5ffa63",
+      "Type": "EndFlowExecution",
+      "Transitions": {}
+    },
+    {
+      "Parameters": {
+        "SkipWhenDTMFBufferEnabled": "false",
+        "Text": "Welcome to the voice test flow"
+      },
+      "Identifier": "f93dc0a3-c422-4d43-8cfa-ec1797719e26",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "28134773-14de-404c-98b3-bd43ab4e921e",
+        "Errors": [
+          {
+            "NextAction": "3f892c9d-19bd-442d-9d73-63e4ca2f918e",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "VoiceBehavior": {
+          "VoiceRecordingBehavior": {
+            "RecordedParticipants": [],
+            "IVRRecordingBehavior": "Disabled"
+          },
+          "VoiceAnalyticsBehavior": {
+            "Enabled": "False"
+          }
+        }
+      },
+      "Identifier": "c843a2fc-94d2-4ef9-bec7-4703e9e75d70",
+      "Type": "UpdateContactRecordingAndAnalyticsBehavior",
+      "Transitions": {
+        "NextAction": "3ecd3272-e51f-4e2e-a210-b4a4c8939281",
+        "Errors": [
+          {
+            "NextAction": "f93dc0a3-c422-4d43-8cfa-ec1797719e26",
+            "ErrorType": "NoMatchingError"
+          },
+          {
+            "NextAction": "f93dc0a3-c422-4d43-8cfa-ec1797719e26",
+            "ErrorType": "ChannelMismatch"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "SkipWhenDTMFBufferEnabled": "false",
+        "Text": "Thank you for calling. This line is currently out of hours. Please call agin during office hours."
+      },
+      "Identifier": "121dd7de-eac3-451b-9c9d-67162ec75feb",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "d8a08e3b-2a97-4ba1-9b05-95650a5ffa63",
+        "Errors": [
+          {
+            "NextAction": "d8a08e3b-2a97-4ba1-9b05-95650a5ffa63",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "HoursOfOperationId": "arn:aws:connect:af-south-1:687244881512:instance/6e669f6f-3783-4c0e-ac76-4f531575015d/operating-hours/4605e369-8882-44d8-a3e9-069bb7fb7120"
+      },
+      "Identifier": "3ecd3272-e51f-4e2e-a210-b4a4c8939281",
+      "Type": "CheckHoursOfOperation",
+      "Transitions": {
+        "NextAction": "d8a08e3b-2a97-4ba1-9b05-95650a5ffa63",
+        "Conditions": [
+          {
+            "NextAction": "f93dc0a3-c422-4d43-8cfa-ec1797719e26",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "True"
+              ]
+            }
+          },
+          {
+            "NextAction": "121dd7de-eac3-451b-9c9d-67162ec75feb",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "False"
+              ]
+            }
+          }
+        ],
+        "Errors": [
+          {
+            "NextAction": "d8a08e3b-2a97-4ba1-9b05-95650a5ffa63",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {},
+      "Identifier": "fbe0d940-fbef-46ec-a888-8a1187b520d0",
+      "Type": "TransferContactToQueue",
+      "Transitions": {
+        "NextAction": "e04f5462-df2d-4376-8b36-50dac8b30206",
+        "Errors": [
+          {
+            "NextAction": "be8f0654-b5d5-49e0-8556-c2d49b0e1334",
+            "ErrorType": "QueueAtCapacity"
+          },
+          {
+            "NextAction": "e04f5462-df2d-4376-8b36-50dac8b30206",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "SkipWhenDTMFBufferEnabled": "false",
+        "Text": "I didn't quite get that, please try again"
+      },
+      "Identifier": "2a261194-ddb3-4941-aeb2-1d6d1e85d56c",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "28134773-14de-404c-98b3-bd43ab4e921e",
+        "Errors": [
+          {
+            "NextAction": "e04f5462-df2d-4376-8b36-50dac8b30206",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "Text": "Welcome to the technical menu. Please specify if you have wifi issues or laptop issues. Please say this in a clear voice",
+        "LexV2Bot": {
+          "AliasArn": "arn:aws:lex:af-south-1:687244881512:bot-alias/HMMAXX5G6E/TSTALIASID"
+        }
+      },
+      "Identifier": "492ba086-cbf7-40fe-98c6-001d6ec46913",
+      "Type": "ConnectParticipantWithLexBot",
+      "Transitions": {
+        "NextAction": "e04f5462-df2d-4376-8b36-50dac8b30206",
+        "Conditions": [
+          {
+            "NextAction": "3d5df375-c4cd-4b95-91f0-81b594d89dc4",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "bs-technical-wifi"
+              ]
+            }
+          },
+          {
+            "NextAction": "f8f3899c-f96e-4f5e-a910-f80f1b0224d9",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "bs-technical-laptop"
+              ]
+            }
+          }
+        ],
+        "Errors": [
+          {
+            "NextAction": "67483666-27b4-45c9-9144-b0cde914f7ad",
+            "ErrorType": "NoMatchingCondition"
+          },
+          {
+            "NextAction": "e04f5462-df2d-4376-8b36-50dac8b30206",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "Text": "Please let us know the purpose of your call. You can do this by saying what you need assistance with in a clear voice.",
+        "LexV2Bot": {
+          "AliasArn": "arn:aws:lex:af-south-1:687244881512:bot-alias/HMMAXX5G6E/TSTALIASID"
+        }
+      },
+      "Identifier": "28134773-14de-404c-98b3-bd43ab4e921e",
+      "Type": "ConnectParticipantWithLexBot",
+      "Transitions": {
+        "NextAction": "e04f5462-df2d-4376-8b36-50dac8b30206",
+        "Conditions": [
+          {
+            "NextAction": "e36133de-bbf8-48c3-8ee0-5ed9f71174e1",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "bs-general"
+              ]
+            }
+          },
+          {
+            "NextAction": "492ba086-cbf7-40fe-98c6-001d6ec46913",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "bs-technical"
+              ]
+            }
+          },
+          {
+            "NextAction": "54d06529-5512-4885-b1fe-f64244baebae",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "bs-sales"
+              ]
+            }
+          }
+        ],
+        "Errors": [
+          {
+            "NextAction": "67483666-27b4-45c9-9144-b0cde914f7ad",
+            "ErrorType": "NoMatchingCondition"
+          },
+          {
+            "NextAction": "e04f5462-df2d-4376-8b36-50dac8b30206",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "SkipWhenDTMFBufferEnabled": "false",
+        "Text": "Something went wrong, please call again."
+      },
+      "Identifier": "e04f5462-df2d-4376-8b36-50dac8b30206",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "be8f0654-b5d5-49e0-8556-c2d49b0e1334",
+        "Errors": [
+          {
+            "NextAction": "be8f0654-b5d5-49e0-8556-c2d49b0e1334",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "QueueId": "arn:aws:connect:af-south-1:687244881512:instance/6e669f6f-3783-4c0e-ac76-4f531575015d/queue/a3ddb3e2-2b7d-4561-9336-749cfa14f910"
+      },
+      "Identifier": "e36133de-bbf8-48c3-8ee0-5ed9f71174e1",
+      "Type": "UpdateContactTargetQueue",
+      "Transitions": {
+        "NextAction": "fbe0d940-fbef-46ec-a888-8a1187b520d0",
+        "Errors": [
+          {
+            "NextAction": "e04f5462-df2d-4376-8b36-50dac8b30206",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "LoopCount": "2"
+      },
+      "Identifier": "67483666-27b4-45c9-9144-b0cde914f7ad",
+      "Type": "Loop",
+      "Transitions": {
+        "NextAction": "d8b7ad90-541e-4877-9e0a-cdcbf4378804",
+        "Conditions": [
+          {
+            "NextAction": "2a261194-ddb3-4941-aeb2-1d6d1e85d56c",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "ContinueLooping"
+              ]
+            }
+          },
+          {
+            "NextAction": "d8b7ad90-541e-4877-9e0a-cdcbf4378804",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "DoneLooping"
+              ]
+            }
+          }
+        ],
+        "Errors": [
+          {
+            "NextAction": "e04f5462-df2d-4376-8b36-50dac8b30206",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "SkipWhenDTMFBufferEnabled": "false",
+        "Text": "I didn't quite get that, please hold whil;e I transfer you to an agent."
+      },
+      "Identifier": "d8b7ad90-541e-4877-9e0a-cdcbf4378804",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "e36133de-bbf8-48c3-8ee0-5ed9f71174e1",
+        "Errors": [
+          {
+            "NextAction": "e36133de-bbf8-48c3-8ee0-5ed9f71174e1",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    }
+  ]
+}

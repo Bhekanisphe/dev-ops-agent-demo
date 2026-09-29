@@ -1,0 +1,48 @@
+{
+  "Version": "2019-10-30",
+  "StartAction": "5f2c1d84-6a3e-4d1b-9c07-3e8b91f4a2d5",
+  "Metadata": {
+    "entryPointPosition": {
+      "x": 243,
+      "y": 172
+    },
+    "snapToGrid": false,
+    "ActionMetadata": {
+      "5f2c1d84-6a3e-4d1b-9c07-3e8b91f4a2d5": {
+        "position": {
+          "x": 433,
+          "y": 236
+        },
+        "audio": [
+          {
+            "type": "Text",
+            "tts": "Thank you for calling. One of our $.Attributes.agentWording will be with you shortly.",
+            "$$hashKey": "02A"
+          }
+        ],
+        "timeoutUnit": {
+          "display": "Minutes",
+          "value": "min"
+        }
+      }
+    },
+    "name": "rsa-default-cust-queue"
+  },
+  "Actions": [
+    {
+      "Identifier": "5f2c1d84-6a3e-4d1b-9c07-3e8b91f4a2d5",
+      "Parameters": {
+        "Messages": [
+          {
+            "Text": "Thank you for calling. One of our $.Attributes.agentWording will be with you shortly."
+          }
+        ]
+      },
+      "Transitions": {
+        "Errors": [],
+        "Conditions": []
+      },
+      "Type": "MessageParticipantIteratively"
+    }
+  ]
+}

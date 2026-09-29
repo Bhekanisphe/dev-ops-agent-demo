@@ -17,10 +17,7 @@ import {
   const SORT_KEY = process.env.AUTO_TEST_SORT_KEY as string;
   const SOURCE_INDEX_NAME = process.env.AUTO_TEST_SOURCE_INDEX as string;
 
-  // Stamped onto every loaded item so a later S3 delete can find what it created.
   const SOURCE_KEY_ATTR = "source_object_key";
-  // Stamped onto items that came from a named wrapper ({"test1": {...}, "test2": {...}}),
-  // so the DynamoDB item can be traced back to the block that produced it.
   const TEST_CASE_NAME_ATTR = "test_case_name";
 
   const BATCH_SIZE = 25;
@@ -41,13 +38,10 @@ import {
     return Buffer.concat(chunks).toString("utf-8");
   }
 
-  // S3 event keys arrive URL-encoded, with spaces as "+".
   function objectKey(record: S3EventRecord): string {
     return decodeURIComponent(record.s3.object.key.replace(/\+/g, " "));
   }
 
-  // The uploaded file may hold a single config object, an array of them, or a map of
-  // named configs — {"test1": {...}, "test2": {...}} — which yields one item per name.
   function toCandidates(parsed: unknown, source: string): { label: string; name?: string; value: unknown }[] {
     if (Array.isArray(parsed)) {
       return parsed.map((value, i) => ({ label: `${source}[${i}]`, value }));
@@ -57,7 +51,6 @@ import {
       throw new Error(`${source} is not a JSON object`);
     }
 
-    // A single config carries the table keys at the top level; a named map does not.
     const record = parsed as Record<string, unknown>;
     if (KEY_NAME in record) {
       return [{ label: source, value: record }];
@@ -80,8 +73,6 @@ import {
       }
 
       const item = candidate as TestCaseItem;
-      // Both keys land in DynamoDB as strings, so a config that writes
-      // "testing-option": 1.2 instead of "1.2" still loads cleanly.
       for (const keyName of [KEY_NAME, SORT_KEY]) {
         const value = item[keyName];
         if (value === undefined || value === null || value === "") {
@@ -93,8 +84,6 @@ import {
         item[keyName] = String(value);
       }
 
-      // BatchWriteItem rejects a batch containing two writes to the same key, so
-      // point at the offending pair rather than failing with a generic SDK error.
       const itemKey = `${item[KEY_NAME]}#${item[SORT_KEY]}`;
       const duplicate = seen.get(itemKey);
       if (duplicate) {
@@ -172,7 +161,12 @@ import {
     return keys;
   }
 
-  async function loadRecord(record: S3EventRecord): Promise<number> {
+  interface LoadCounts {
+    loaded: number;
+    removed: number;
+  }
+
+  async function loadRecord(record: S3EventRecord): Promise<LoadCounts> {
     const bucket = record.s3.bucket.name;
     const key = objectKey(record);
     const source = `s3://${bucket}/${key}`;
@@ -188,14 +182,34 @@ import {
     }
 
     const items = toItems(parsed, key, source);
-    await sendBatches(
-      items.map((item) => ({
-        PutRequest: { Item: marshall(item, { removeUndefinedValues: true }) },
-      }))
+
+    // What this object loaded last time and no longer holds. Without this, cutting a
+    // config down - by selecting the paths a flow generates, or by editing the flow
+    // so a path is gone - would leave the test cases it used to hold behind: still in
+    // the table, still in Connect, still in the results workbook. Deleting the item is
+    // what tells the stream to delete the test case.
+    const wanted = new Set(items.map((item) => `${item[KEY_NAME]}#${item[SORT_KEY]}`));
+    const stale = (await itemKeysForObject(key)).filter(
+      (itemKey) => !wanted.has(`${itemKey[KEY_NAME]?.S}#${itemKey[SORT_KEY]?.S}`)
     );
 
+    await sendBatches([
+      ...items.map((item) => ({
+        PutRequest: { Item: marshall(item, { removeUndefinedValues: true }) },
+      })),
+      ...stale.map((Key) => ({ DeleteRequest: { Key } })),
+    ]);
+
     console.log(`Loaded ${items.length} item(s) from ${source} into ${TABLE_NAME}`);
-    return items.length;
+    if (stale.length > 0) {
+      console.log(
+        `Removed ${stale.length} item(s) ${source} no longer holds: ${stale
+          .map((itemKey) => `${itemKey[KEY_NAME]?.S}:${itemKey[SORT_KEY]?.S}`)
+          .join(", ")}`
+      );
+    }
+
+    return { loaded: items.length, removed: stale.length };
   }
 
   async function removeRecord(record: S3EventRecord): Promise<number> {
@@ -203,8 +217,6 @@ import {
     const key = objectKey(record);
     const source = `s3://${bucket}/${key}`;
 
-    // The bucket is versioned, so ObjectRemoved also fires when an old version is
-    // purged. If the key still resolves, the config is live and must stay.
     if (await objectStillExists(bucket, key)) {
       console.log(`${source} still exists (noncurrent version removed) — keeping items`);
       return 0;
@@ -230,7 +242,9 @@ import {
       if (record.eventName?.startsWith("ObjectRemoved:")) {
         removed += await removeRecord(record);
       } else {
-        loaded += await loadRecord(record);
+        const counts = await loadRecord(record);
+        loaded += counts.loaded;
+        removed += counts.removed;
       }
     }
 

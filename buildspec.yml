@@ -25,6 +25,7 @@ phases:
       # no changes to apply, which left this step with nothing to parse.
       - BUCKET=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query "Stacks[0].Outputs[?OutputKey=='TestCaseDataBucketName'].OutputValue" --output text)
       - PREFIX=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query "Stacks[0].Outputs[?OutputKey=='TestCaseDataPrefix'].OutputValue" --output text)
+      - FLOW_PREFIX=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query "Stacks[0].Outputs[?OutputKey=='FlowDefinitionPrefix'].OutputValue" --output text)
       # Fail loudly rather than syncing to "s3:///" or to the bucket root, where
       # the notification's prefix filter would not match and nothing would run.
       - if [ -z "$BUCKET" ] || [ "$BUCKET" = "None" ] || [ -z "$PREFIX" ] || [ "$PREFIX" = "None" ]; then echo "Could not resolve the test case data outputs from stack $STACK_NAME (bucket='$BUCKET' prefix='$PREFIX')"; exit 1; fi
@@ -34,6 +35,11 @@ phases:
       # cases that config created. --size-only stops a fresh git checkout's
       # timestamps from re-uploading files whose contents have not changed.
       - aws s3 sync test-case-data/ "s3://$BUCKET/$PREFIX" --exclude "*" --include "*.json" --size-only
+      # One <FlowName>.json per flow, sitting directly under the prefix: the file
+      # name is where the generator reads the flow name from. Same --size-only/no
+      # --delete reasoning as above, and here deleting one deletes that flow's
+      # test cases in Connect, so it must not happen as a side effect of a build.
+      - if [ -d flow-definition ] && [ -n "$FLOW_PREFIX" ] && [ "$FLOW_PREFIX" != "None" ]; then echo "Uploading flow definitions to s3://$BUCKET/$FLOW_PREFIX"; aws s3 sync flow-definition/ "s3://$BUCKET/$FLOW_PREFIX" --exclude "*" --include "*.json" --size-only; fi
   post_build:
     commands:
       - echo Build completed on `date`
